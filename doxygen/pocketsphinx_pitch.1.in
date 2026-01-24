@@ -1,8 +1,8 @@
-.TH SPHINX_PITCH 1 "2007-05-12"
+.TH POCKETSPHINX_PITCH 1 "2007-05-12"
 .SH NAME
-sphinx_pitch \- Extract pitch from audio files
+pocketsphinx_pitch \- Extract pitch from audio files
 .SH SYNOPSIS
-.B sphinx_pitch
+.B pocketsphinx_pitch
 [\fI options \fR]...
 .SH DESCRIPTION
 .PP
