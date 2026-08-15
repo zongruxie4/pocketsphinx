@@ -24,6 +24,7 @@ set(TESTS
   test_keyphrase
   test_lattice
   test_lm_convert
+  test_lm_reader_hardening
   test_ngram_model_read
   test_log_shifted
   test_log_int8
