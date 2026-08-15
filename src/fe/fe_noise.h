@@ -43,6 +43,43 @@
 
 typedef struct noise_stats_s noise_stats_t;
 
+#define SMOOTH_WINDOW 4
+
+struct noise_stats_s {
+    /* Smoothed power */
+    powspec_t *power;
+    /* Noise estimate */
+    powspec_t *noise;
+    /* Signal floor estimate */
+    powspec_t *floor;
+    /* Peak for temporal masking */
+    powspec_t *peak;
+    /* Buffers used in update_noisestats */
+    powspec_t *signal, *gain;
+
+    /* Initialize it next time */
+    int undefined;
+    /* Number of items to process */
+    int num_filters;
+
+    /* Sum of slow peaks for VAD */
+    powspec_t slow_peak_sum;
+
+    /* Precomputed constants */
+    powspec_t lambda_power;
+    powspec_t comp_lambda_power;
+    powspec_t lambda_a;
+    powspec_t comp_lambda_a;
+    powspec_t lambda_b;
+    powspec_t comp_lambda_b;
+    powspec_t lambda_t;
+    powspec_t mu_t;
+    powspec_t max_gain;
+    powspec_t inv_max_gain;
+
+    powspec_t smooth_scaling[2 * SMOOTH_WINDOW + 3];
+};
+
 /* Creates noisestats object */
 noise_stats_t *fe_init_noisestats(int num_filters);
 

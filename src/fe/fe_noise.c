@@ -62,7 +62,6 @@
 #include "fe/fe_internal.h"
 
 /* Noise suppression constants */
-#define SMOOTH_WINDOW 4
 #define LAMBDA_POWER 0.7
 #define LAMBDA_A 0.995
 #define LAMBDA_B 0.5
@@ -72,41 +71,6 @@
 #define SLOW_PEAK_FORGET_FACTOR 0.9995
 #define SLOW_PEAK_LEARN_FACTOR 0.9
 #define SPEECH_VOLUME_RANGE 8.0
-
-struct noise_stats_s {
-    /* Smoothed power */
-    powspec_t *power;
-    /* Noise estimate */
-    powspec_t *noise;
-    /* Signal floor estimate */
-    powspec_t *floor;
-    /* Peak for temporal masking */
-    powspec_t *peak;
-    /* Buffers used in update_noisestats */
-    powspec_t *signal, *gain;
-
-    /* Initialize it next time */
-    int undefined;
-    /* Number of items to process */
-    int num_filters;
-
-    /* Sum of slow peaks for VAD */
-    powspec_t slow_peak_sum;
-
-    /* Precomputed constants */
-    powspec_t lambda_power;
-    powspec_t comp_lambda_power;
-    powspec_t lambda_a;
-    powspec_t comp_lambda_a;
-    powspec_t lambda_b;
-    powspec_t comp_lambda_b;
-    powspec_t lambda_t;
-    powspec_t mu_t;
-    powspec_t max_gain;
-    powspec_t inv_max_gain;
-
-    powspec_t smooth_scaling[2 * SMOOTH_WINDOW + 3];
-};
 
 static void
 fe_lower_envelope(noise_stats_t *noise_stats, const powspec_t *buf, powspec_t *floor_buf, int32 num_filt)
