@@ -128,6 +128,13 @@ ps_expand_model_config(ps_config_t *config)
             E_INFO("Parsed model-specific feature parameters from %s\n",
                     featparams);
     }
+    else if (hmmdir) {
+        E_WARN("No feat.params file found in %s; the front end will be built "
+               "from defaults plus caller-supplied configuration. The caller "
+               "is responsible for matching the acoustic model's training "
+               "front end.\n",
+               hmmdir);
+    }
 }
 
 static void

@@ -16,6 +16,7 @@ set(TESTS
   test_fe
   test_fe_warp_overflow
   test_fe_fft_overflow
+  test_featparams
   test_fwdflat
   test_fwdtree_bestpath
   test_fwdtree
