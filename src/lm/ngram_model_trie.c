@@ -243,7 +243,29 @@ ngram_model_trie_write_arpa(ngram_model_t * base, const char *path)
     int i;
     uint32 j;
     ngram_model_trie_t *model = (ngram_model_trie_t *) base;
-    FILE *fp = fopen(path, "w");
+    uint32 counts[NGRAM_MAX_ORDER];
+    FILE *fp;
+
+    /* The header counts (base->n_counts) can disagree with the trie
+     * content for models built with an inconsistent header, so discover
+     * the true per-order counts by walking the trie before writing
+     * anything, and emit those counts so the output is self-consistent. */
+    counts[0] = base->n_counts[0];
+    for (i = 2; i <= base->n; ++i) {
+        uint32 raw_ngram_idx = 0;
+        uint32 hist[NGRAM_MAX_ORDER];
+        node_range_t range;
+        range.begin = range.end = 0;
+        lm_trie_fill_raw_ngram(model->trie, NULL, &raw_ngram_idx, 0,
+                               base->n_counts, range, hist, 0, i, base->n);
+        counts[i - 1] = raw_ngram_idx;
+        if (raw_ngram_idx != base->n_counts[i - 1])
+            E_WARN("Header %d-gram count %u does not match trie content %u, "
+                   "writing %u\n", i, base->n_counts[i - 1],
+                   raw_ngram_idx, raw_ngram_idx);
+    }
+
+    fp = fopen(path, "w");
     if (!fp) {
         E_ERROR("Unable to open %s to write arpa LM from trie\n", path);
         return -1;
@@ -253,7 +275,7 @@ ngram_model_trie_write_arpa(ngram_model_t * base, const char *path)
     /* Write N-gram counts. */
     fprintf(fp, "\\data\\\n");
     for (i = 0; i < base->n; ++i) {
-        fprintf(fp, "ngram %d=%d\n", i + 1, base->n_counts[i]);
+        fprintf(fp, "ngram %d=%d\n", i + 1, counts[i]);
     }
     /* Write 1-grams */
     fprintf(fp, "\n\\1-grams:\n");
@@ -272,7 +294,7 @@ ngram_model_trie_write_arpa(ngram_model_t * base, const char *path)
     if (base->n > 1) {
         for (i = 2; i <= base->n; ++i) {
             ngram_raw_t *raw_ngrams =
-                (ngram_raw_t *) ckd_calloc((size_t) base->n_counts[i - 1],
+                (ngram_raw_t *) ckd_calloc((size_t) counts[i - 1],
                                            sizeof(*raw_ngrams));
             uint32 raw_ngram_idx;
             uint32 j;
@@ -283,14 +305,13 @@ ngram_model_trie_write_arpa(ngram_model_t * base, const char *path)
 
             /* we need to iterate over a trie here. recursion should do the job */
             lm_trie_fill_raw_ngram(model->trie, raw_ngrams,
-                           &raw_ngram_idx, base->n_counts, range, hist, 0,
-                           i, base->n);
-            assert(raw_ngram_idx == base->n_counts[i - 1]);
-            qsort(raw_ngrams, (size_t) base->n_counts[i - 1],
+                           &raw_ngram_idx, counts[i - 1], base->n_counts,
+                           range, hist, 0, i, base->n);
+            qsort(raw_ngrams, (size_t) counts[i - 1],
                   sizeof(ngram_raw_t), &ngram_ord_comparator);
 
             fprintf(fp, "\n\\%d-grams:\n", i);
-            for (j = 0; j < base->n_counts[i - 1]; j++) {
+            for (j = 0; j < counts[i - 1]; j++) {
                 int k;
                 fprintf(fp, "%.4f", logmath_log_float_to_log10(base->lmath, raw_ngrams[j].prob));
                 for (k = 0; k < i; k++) {
