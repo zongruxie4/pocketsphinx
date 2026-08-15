@@ -7,6 +7,7 @@ set(TESTS
   test_acmod
   test_acmod_grow
   test_alignment
+  test_align_bestpath
   test_allphone
   test_bitvec
   test_config

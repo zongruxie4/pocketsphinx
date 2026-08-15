@@ -243,6 +243,13 @@ fsg_search_init(const char *name,
         fsgs->bestpath = TRUE;
 #endif
 
+    /* Forced alignment must use the Viterbi backtrace, not the lattice
+     * bestpath: the latter's segmentation can give phones durations too
+     * short for their HMMs, corrupting the state alignment.  The align
+     * CLI already disables bestpath; do the same for the _align search. */
+    if (name != NULL && strcmp(name, PS_DEFAULT_ALIGN_SEARCH) == 0)
+        fsgs->bestpath = FALSE;
+
     if (fsg_search_reinit(ps_search_base(fsgs),
                           ps_search_dict(fsgs),
                           ps_search_dict2pid(fsgs)) < 0)
