@@ -37,6 +37,7 @@ set(TESTS
   test_senfh
   test_set_search
   test_simple
+  test_start_stream
   test_state_align
   test_vad
   test_vad_alloc

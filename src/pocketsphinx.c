@@ -1076,8 +1076,6 @@ ps_start_stream(ps_decoder_t *ps)
         return -1;
     if (ps->acmod->fe == NULL)
         return -1;
-    if (ps->acmod->fe->noise_stats == NULL)
-        return -1;
     fe_reset_noisestats(ps->acmod->fe->noise_stats);
     return 0;
 }
