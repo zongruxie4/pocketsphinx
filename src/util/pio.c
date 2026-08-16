@@ -67,6 +67,16 @@
 #include "util/strfuncs.h"
 #include "util/ckd_alloc.h"
 
+/* The MSVC/Win32 C runtime exports the pipe functions as _popen/_pclose.
+ * The POSIX spellings are declared in <stdio.h> (so HAVE_POPEN is defined
+ * and the code compiles) but are not resolvable when linking a shared
+ * library, which breaks an MSVC DLL build.  Map to the underscore
+ * spellings on Win32, matching the guard already used for _pclose. */
+#if defined(_WIN32) && !defined(__SYMBIAN32__)
+#define popen _popen
+#define pclose _pclose
+#endif
+
 #ifndef EXEEXT
 #define EXEEXT ""
 #endif
@@ -186,11 +196,7 @@ fclose_comp(FILE * fp, int32 ispipe)
 {
     if (ispipe) {
 #ifdef HAVE_POPEN
-#if defined(_WIN32) && (!defined(__SYMBIAN32__))
-        _pclose(fp);
-#else
         pclose(fp);
-#endif
 #endif
     }
     else
