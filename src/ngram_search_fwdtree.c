@@ -421,6 +421,8 @@ deinit_search_tree(ngram_search_t *ngs)
     ngs->single_phone_wid = NULL;
     ckd_free(ngs->homophone_set);
     ngs->homophone_set = NULL;
+	ckd_free_2d(ngs->root_lookup);
+	ngs->root_lookup = NULL;
 }
 
 void
