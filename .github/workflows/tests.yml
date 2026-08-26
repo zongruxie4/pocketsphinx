@@ -50,6 +50,10 @@ jobs:
           - ubuntu-24.04-arm
           - macos-latest
           - windows-latest
+          - windows-11-arm
+        exclude:
+          - os: windows-11-arm
+            py: "3.8"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # was: actions/checkout@v6
       - name: Setup python for test ${{ matrix.py }}
