@@ -237,6 +237,7 @@ struct ngram_search_s {
     int32 n_nonroot_chan;    /**< Number of valid non-root channels */
     int32 max_nonroot_chan;  /**< Maximum possible number of non-root channels */
     root_chan_t *rhmm_1ph;   /**< Root HMMs for single-phone words */
+    root_chan_t ***root_lookup; /**< Root channel lookup table */
 
     /**
      * Channels associated with a given word (only used for right
