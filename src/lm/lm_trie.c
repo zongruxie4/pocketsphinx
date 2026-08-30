@@ -827,7 +827,7 @@ lm_trie_score(lm_trie_t * trie, int order, int32 wid, int32 * hist,
 void
 lm_trie_fill_raw_ngram(lm_trie_t * trie,
     		       ngram_raw_t * raw_ngrams, uint32 * raw_ngram_idx,
-            	       uint32 * counts, node_range_t range, uint32 * hist,
+            	       uint32 capacity, uint32 * counts, node_range_t range, uint32 * hist,
     	               int n_hist, int order, int max_order)
 {
     if (n_hist > 0 && range.begin == range.end) {
@@ -839,7 +839,7 @@ lm_trie_fill_raw_ngram(lm_trie_t * trie,
             node_range_t node;
             unigram_find(trie->unigrams, i, &node);
             hist[0] = i;
-            lm_trie_fill_raw_ngram(trie, raw_ngrams, raw_ngram_idx, counts,
+            lm_trie_fill_raw_ngram(trie, raw_ngrams, raw_ngram_idx, capacity, counts,
                            node, hist, 1, order, max_order);
         }
     }
@@ -866,7 +866,7 @@ lm_trie_fill_raw_ngram(lm_trie_t * trie,
             node.end =
                 bitarr_read_int25(address, middle->next_mask.bits,
                                   middle->next_mask.mask);
-            lm_trie_fill_raw_ngram(trie, raw_ngrams, raw_ngram_idx, counts,
+            lm_trie_fill_raw_ngram(trie, raw_ngrams, raw_ngram_idx, capacity, counts,
                            node, hist, n_hist + 1, order, max_order);
         }
     }
@@ -877,7 +877,12 @@ lm_trie_fill_raw_ngram(lm_trie_t * trie,
         int i;
         assert(n_hist == order - 1);
         for (ptr = range.begin; ptr < range.end; ptr++) {
-            ngram_raw_t *raw_ngram = &raw_ngrams[*raw_ngram_idx];
+            ngram_raw_t *raw_ngram;
+            if (*raw_ngram_idx >= capacity) {
+                (*raw_ngram_idx)++;
+                continue;
+            }
+            raw_ngram = &raw_ngrams[*raw_ngram_idx];
             if (order == max_order) {
                 longest_t *longest = trie->longest;
                 address.base = longest->base.base;

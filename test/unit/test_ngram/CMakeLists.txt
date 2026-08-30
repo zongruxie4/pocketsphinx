@@ -6,6 +6,7 @@ set(TEST_EXECUTABLES
   test_lm_class
   test_lm_set
   test_lm_write
+  test_lm_write_consistency
   )
 foreach(TEST_EXECUTABLE ${TEST_EXECUTABLES})
   add_executable(${TEST_EXECUTABLE} EXCLUDE_FROM_ALL ${TEST_EXECUTABLE}.c)
