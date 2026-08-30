@@ -332,6 +332,9 @@ int ps_add_allphone_file(ps_decoder_t *ps, const char *name, const char *path);
  *
  * Decoding proceeds as normal, though only this word sequence will be
  * recognized, with silences and alternate pronunciations inserted.
+ * An explicit dictionary variant such as `a(2)` uses only that entry's
+ * pronunciation.  A base spelling such as `a` may use any of its alternate
+ * pronunciations.  An unknown spelling such as `a(99)` causes an error.
  * Word alignments are available with ps_seg_iter().  To obtain
  * phoneme or state segmentations, you must subsequently call
  * ps_set_alignment() and re-run decoding.  It's tough son, but it's life.

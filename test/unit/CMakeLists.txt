@@ -6,6 +6,8 @@ target_include_directories(test_thread_utils PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set(TESTS
   test_acmod
   test_acmod_grow
+  test_align_text_variant
+  test_align_variant_alt
   test_alignment
   test_align_bestpath
   test_allphone
