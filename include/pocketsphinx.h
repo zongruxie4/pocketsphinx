@@ -771,7 +771,9 @@ int ps_decode_senscr(ps_decoder_t *ps, FILE *senfh);
  *
  * @deprecated This function is retained for compatibility, but its
  * only effect is to reset the noise removal statistics, which are
- * otherwise retained across utterances.  You do not need to call it.
+ * otherwise retained across utterances.  If noise removal is disabled,
+ * there are no statistics to reset and this is a successful no-op.  You
+ * do not need to call it.
  *
  * @memberof ps_decoder_t
  * @return 0 for success, <0 on error.
