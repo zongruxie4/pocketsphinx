@@ -186,7 +186,9 @@ ngrams_raw_read_arpa(lineiter_t ** li, logmath_t * lmath, uint32 * counts,
         return NULL;
     } else {
         *li = lineiter_next(*li);
-	if (strcmp((*li)->buf, "\\end\\") != 0) {
+	if (*li == NULL) {
+	    E_WARN("Finished reading ARPA file without finding end mark\n");
+	} else if (strcmp((*li)->buf, "\\end\\") != 0) {
     	    E_WARN
         	("Finished reading ARPA file. Expecting end mark but found '%s'\n",
         	 (*li)->buf);
@@ -196,20 +198,44 @@ ngrams_raw_read_arpa(lineiter_t ** li, logmath_t * lmath, uint32 * counts,
     return raw_ngrams;
 }
 
-static void
+static int
 read_dmp_weight_array(FILE * fp, logmath_t * lmath, uint8 do_swap,
                       int32 counts, ngram_raw_t * raw_ngrams,
                       int weight_idx)
 {
     int32 i, k;
+    long filepos, remaining;
     dmp_weight_t *tmp_weight_arr;
 
-    fread(&k, sizeof(k), 1, fp);
+    if (fread(&k, sizeof(k), 1, fp) != 1) {
+        E_ERROR("Failed to read weight array size\n");
+        return -1;
+    }
     if (do_swap)
         SWAP_INT32(&k);
+    if (k <= 0) {
+        E_ERROR("Invalid weight array size %d\n", k);
+        return -1;
+    }
+    /* Reject a size that cannot fit in the remaining file, before
+     * allocating, so a corrupt count does not request a huge block.
+     * Skipped for non-seekable input, where the read below is the guard. */
+    filepos = ftell(fp);
+    if (filepos >= 0 && fseek(fp, 0, SEEK_END) == 0) {
+        remaining = ftell(fp) - filepos;
+        fseek(fp, filepos, SEEK_SET);
+        if (remaining < 0 || k > remaining / (long) sizeof(*tmp_weight_arr)) {
+            E_ERROR("Weight array size %d exceeds remaining file data\n", k);
+            return -1;
+        }
+    }
     tmp_weight_arr =
         (dmp_weight_t *) ckd_calloc(k, sizeof(*tmp_weight_arr));
-    fread(tmp_weight_arr, sizeof(*tmp_weight_arr), k, fp);
+    if (fread(tmp_weight_arr, sizeof(*tmp_weight_arr), k, fp) != (size_t) k) {
+        E_ERROR("Failed to read weight array\n");
+        ckd_free(tmp_weight_arr);
+        return -1;
+    }
     for (i = 0; i < k; i++) {
         if (do_swap)
             SWAP_INT32(&tmp_weight_arr[i].l);
@@ -219,15 +245,22 @@ read_dmp_weight_array(FILE * fp, logmath_t * lmath, uint8 do_swap,
     }
     /* replace indexes with real probs in raw bigrams */
     for (i = 0; i < counts; i++) {
+        int32 idx = (weight_idx == 0)
+            ? (int32) raw_ngrams[i].prob
+            : (int32) raw_ngrams[i].backoff;
+        if (idx < 0 || idx >= k) {
+            E_ERROR("Weight index %d out of range [0, %d)\n", idx, k);
+            ckd_free(tmp_weight_arr);
+            return -1;
+        }
 	if (weight_idx == 0) {
-	    raw_ngrams[i].prob =
-                tmp_weight_arr[(int) raw_ngrams[i].prob].f;
+	    raw_ngrams[i].prob = tmp_weight_arr[idx].f;
         } else {
-	    raw_ngrams[i].backoff =
-                tmp_weight_arr[(int) raw_ngrams[i].backoff].f;
+	    raw_ngrams[i].backoff = tmp_weight_arr[idx].f;
         }
     }
     ckd_free(tmp_weight_arr);
+    return 0;
 }
 
 #define BIGRAM_SEGMENT_SIZE 9
@@ -315,17 +348,29 @@ ngrams_raw_read_dmp(FILE * fp, logmath_t * lmath, uint32 * counts,
     }
 
     /* read prob2 */
-    read_dmp_weight_array(fp, lmath, do_swap, (int32) counts[1],
-                          raw_ngrams[0], 0);
+    if (read_dmp_weight_array(fp, lmath, do_swap, (int32) counts[1],
+                              raw_ngrams[0], 0) < 0) {
+        ckd_free(bigrams_next);
+        ngrams_raw_free(raw_ngrams, counts, order);
+        return NULL;
+    }
     /* read bo2 */
     if (order > 2) {
         int32 k;
         int32 *tseg_base;
-        read_dmp_weight_array(fp, lmath, do_swap, (int32) counts[1],
-                              raw_ngrams[0], 1);
+        if (read_dmp_weight_array(fp, lmath, do_swap, (int32) counts[1],
+                                  raw_ngrams[0], 1) < 0) {
+            ckd_free(bigrams_next);
+            ngrams_raw_free(raw_ngrams, counts, order);
+            return NULL;
+        }
         /* read prob3 */
-        read_dmp_weight_array(fp, lmath, do_swap, (int32) counts[2],
-                              raw_ngrams[1], 0);
+        if (read_dmp_weight_array(fp, lmath, do_swap, (int32) counts[2],
+                                  raw_ngrams[1], 0) < 0) {
+            ckd_free(bigrams_next);
+            ngrams_raw_free(raw_ngrams, counts, order);
+            return NULL;
+        }
         /* Read tseg_base size and tseg_base to fill trigram's first words */
         fread(&k, sizeof(k), 1, fp);
         if (do_swap)
@@ -377,7 +422,11 @@ ngrams_raw_free(ngram_raw_t ** raw_ngrams, uint32 * counts, int order)
     uint32 num;
     int order_it;
 
+    if (raw_ngrams == NULL)
+        return;
     for (order_it = 0; order_it < order - 1; order_it++) {
+        if (raw_ngrams[order_it] == NULL)
+            continue;
         for (num = 0; num < counts[order_it + 1]; num++) {
             ckd_free(raw_ngrams[order_it][num].words);
         }

@@ -532,7 +532,7 @@ ngram_model_trie_read_dmp(ps_config_t * config,
         goto error_out;
     }
     if (strncmp(file_header, dmp_hdr, k) != 0) {
-        E_ERROR("Wrong header %s: %s is not a dump file\n", dmp_hdr);
+        E_ERROR("Wrong header: %s is not a dump file\n", file_name);
         goto error_out;
     }
     ckd_free(file_header);
@@ -675,9 +675,11 @@ ngram_model_trie_read_dmp(ps_config_t * config,
 
     /* Sentinel unigram and bigrams read before */
     ckd_free(unigram_next);
+    unigram_next = NULL;
 
     /* read ascii word strings */
-    read_word_str(base, fp, do_swap);
+    if (read_word_str(base, fp, do_swap) != 0)
+        goto error_out;
 
     fclose_comp(fp, is_pipe);
     return base;
